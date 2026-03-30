@@ -6,12 +6,18 @@ import com.example.demo.model.Product;
 import com.example.demo.dto.CategoryValueDTO;
 import java.util.List;
 
-public interface ProductRepository extends JpaRepository<Product, Long> {
-    List<Product> findByNameContainingIgnoreCase(String name);
+import org.springframework.data.repository.query.Param;
 
-    List<Product> findByCategoryNameIgnoreCase(String categoryName);
+public interface ProductRepository extends JpaRepository<Product, Long> {
+    List<Product> findByUserIdAndNameContainingIgnoreCase(Long userId, String name);
+
+    List<Product> findByUserIdAndCategoryNameIgnoreCase(Long userId, String categoryName);
+
+    List<Product> findByUserId(Long userId);
+    
+    long countByUserId(Long userId);
 
     @Query("SELECT new com.example.demo.dto.CategoryValueDTO(c.name, SUM(p.price * p.quantity)) " +
-            "FROM Product p JOIN p.category c GROUP BY c.name")
-    List<CategoryValueDTO> findCategoryInventoryValues();
+            "FROM Product p JOIN p.category c WHERE p.user.id = :userId GROUP BY c.name")
+    List<CategoryValueDTO> findCategoryInventoryValuesByUserId(@Param("userId") Long userId);
 }

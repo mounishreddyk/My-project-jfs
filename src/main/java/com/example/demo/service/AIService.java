@@ -30,13 +30,13 @@ public class AIService {
     public AIService() {
     }
 
-    public String processQuery(String query) {
+    public String processQuery(String query, Long userId) {
         if (apiKey == null || apiKey.isEmpty()) {
-            return processFallbackQuery(query);
+            return processFallbackQuery(query, userId);
         } else {
             try {
                 // Better AI response using context
-                List<Product> products = productService.getAllProducts();
+                List<Product> products = productService.getAllProducts(userId);
                 StringBuilder context = new StringBuilder("Current Inventory:\n");
                 for (Product p : products) {
                     context.append("- ").append(p.getName())
@@ -60,13 +60,13 @@ public class AIService {
         }
     }
 
-    private String processFallbackQuery(String query) {
+    private String processFallbackQuery(String query, Long userId) {
         String type = "general";
         String product = null;
         String category = null;
 
         String lowerQuery = query.toLowerCase();
-        List<Product> products = productService.getAllProducts();
+        List<Product> products = productService.getAllProducts(userId);
 
         if (lowerQuery.contains("value") || lowerQuery.contains("total")) {
             if (lowerQuery.contains("inventory") || lowerQuery.contains("all")) {
@@ -126,7 +126,7 @@ public class AIService {
         }
 
         try {
-            return executeQuery(type, product, category);
+            return executeQuery(type, product, category, userId);
         } catch (Exception e) {
             return "Sorry, I couldn't execute your query. Error: " + e.getMessage();
         }
@@ -163,18 +163,18 @@ public class AIService {
 
 
 
-    private String executeQuery(String type, String product, String category) {
+    private String executeQuery(String type, String product, String category, Long userId) {
         switch (type) {
             case "count_product":
                 if (product != null) {
-                    List<Product> products = productService.searchProducts(product);
+                    List<Product> products = productService.searchProducts(product, userId);
                     int total = products.stream().mapToInt(Product::getQuantity).sum();
                     return "Total " + product + " in stock: " + total;
                 }
                 break;
             case "total_value_category":
                 if (category != null) {
-                    double totalValue = productService.getAllProducts().stream()
+                    double totalValue = productService.getAllProducts(userId).stream()
                             .filter(p -> p.getCategory() != null && p.getCategory().getName().equalsIgnoreCase(category))
                             .mapToDouble(p -> p.getPrice() * p.getQuantity())
                             .sum();
@@ -182,7 +182,7 @@ public class AIService {
                 }
                 break;
             case "low_stock":
-                List<Product> lowStock = productService.getAllProducts().stream()
+                List<Product> lowStock = productService.getAllProducts(userId).stream()
                         .filter(p -> p.getQuantity() < 10) // threshold
                         .toList();
                 if (lowStock.isEmpty()) {
