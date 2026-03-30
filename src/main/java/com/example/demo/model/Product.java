@@ -32,6 +32,10 @@ public class Product {
     @PositiveOrZero(message = "Price cannot be negative")
     private double price;
 
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+
     public Long getId() {
         return id;
     }
@@ -70,5 +74,13 @@ public class Product {
 
     public void setPrice(double price) {
         this.price = price;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 }

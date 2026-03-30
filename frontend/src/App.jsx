@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import {
-  Search, Plus, Package, Edit2, Trash2,
+  Search, Plus, Minus, Package, Edit2, Trash2,
   Tag, Box, IndianRupee, X, Bot, LogOut
 } from 'lucide-react';
 import {
   getProducts, addProduct, updateProduct,
-  deleteProduct, searchProducts, getCategories
+  deleteProduct, searchProducts, getCategories,
+  setAuthToken
 } from './services/api';
 import EnhancedDashboard from './components/EnhancedDashboard';
 import CategoryManagement from './components/CategoryManagement';
@@ -128,6 +129,24 @@ function App() {
     }
   };
 
+  const handleStockUpdate = async (product, delta) => {
+    try {
+      const newQuantity = product.quantity + delta;
+      if (newQuantity < 0) return;
+      
+      const payload = {
+        name: product.name,
+        categoryId: product.category?.id,
+        quantity: newQuantity,
+        price: product.price
+      };
+      await updateProduct(product.id, payload);
+      fetchProductsAndCategories();
+    } catch (error) {
+      toast.error('Failed to update stock');
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <>
@@ -135,6 +154,10 @@ function App() {
         <AuthScreen onLoginSuccess={(userData) => {
           setIsAuthenticated(true);
           setCurrentUser(userData);
+          if (userData && userData.token) {
+            setAuthToken(userData.token);
+            localStorage.setItem('token', userData.token);
+          }
         }} />
       </>
     );
@@ -162,6 +185,8 @@ function App() {
           <button onClick={() => {
             setIsAuthenticated(false);
             setCurrentUser(null);
+            setAuthToken(null);
+            localStorage.removeItem('token');
           }}>
             <LogOut /> Logout
           </button>
@@ -170,27 +195,56 @@ function App() {
 
       <EnhancedDashboard />
 
-      <main>
+      <main className="products-wrapper">
         {loading ? (
           <p>Loading...</p>
         ) : products.length === 0 ? (
-          <p>No products</p>
+          <div className="empty-state">
+            <Package size={48} />
+            <p>No products found in inventory</p>
+          </div>
         ) : (
-          products.map(product => (
-            <div key={product.id}>
-              <h3>{product.name}</h3>
-              <p>{product.quantity}</p>
-              <p>₹ {product.price}</p>
+          <div className="product-grid">
+            {products.map(product => (
+              <div key={product.id} className="product-card">
+                <div className="card-body">
+                  <h3 className="card-title">{product.name}</h3>
+                  <div className="card-stat">
+                    <span className="stat-label"><Package size={16} /> Stock</span>
+                    <div className="stock-controls">
+                      <button 
+                        className="icon-btn" 
+                        onClick={() => handleStockUpdate(product, -1)}
+                        disabled={product.quantity <= 0}
+                      >
+                        <Minus size={16} />
+                      </button>
+                      <span className="stat-value stock-value">{product.quantity}</span>
+                      <button 
+                        className="icon-btn" 
+                        onClick={() => handleStockUpdate(product, 1)}
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="card-stat">
+                    <span className="stat-label"><IndianRupee size={16} /> Price</span>
+                    <span className="stat-value price">₹ {product.price}</span>
+                  </div>
+                </div>
 
-              <button onClick={() => openForm(product)}>
-                <Edit2 /> Edit
-              </button>
-
-              <button onClick={() => handleDelete(product.id)}>
-                <Trash2 /> Delete
-              </button>
-            </div>
-          ))
+                <div className="card-actions">
+                  <button className="btn btn-secondary" onClick={() => openForm(product)}>
+                    <Edit2 size={16} /> Edit
+                  </button>
+                  <button className="btn btn-danger" onClick={() => handleDelete(product.id)}>
+                    <Trash2 size={16} /> Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </main>
 

@@ -14,6 +14,9 @@ import com.example.demo.dto.ProductDTO;
 import com.example.demo.model.Product;
 import com.example.demo.service.ProductService;
 
+import org.springframework.security.core.Authentication;
+import com.example.demo.security.CustomUserDetails;
+
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
@@ -22,44 +25,51 @@ public class ProductController {
     private ProductService service;
 
     @PostMapping
-    public ResponseEntity<Product> addProduct(@Valid @RequestBody ProductDTO productDTO) {
-        Product savedProduct = service.saveProduct(productDTO);
+    public ResponseEntity<Product> addProduct(@Valid @RequestBody ProductDTO productDTO, Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Product savedProduct = service.saveProduct(productDTO, userDetails.getId());
         return new ResponseEntity<>(savedProduct, HttpStatus.CREATED);
     }
 
     @GetMapping
-    public List<Product> getAllProducts() {
-        return service.getAllProducts();
+    public List<Product> getAllProducts(Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        return service.getAllProducts(userDetails.getId());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Product> getProductById(@PathVariable Long id) {
-        Product product = service.getProductById(id);
+    public ResponseEntity<Product> getProductById(@PathVariable Long id, Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Product product = service.getProductByIdAndUserId(id, userDetails.getId());
         return ResponseEntity.ok(product);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @Valid @RequestBody ProductDTO productDTO) {
-        Product updatedProduct = service.updateProduct(id, productDTO);
+    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @Valid @RequestBody ProductDTO productDTO, Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Product updatedProduct = service.updateProduct(id, productDTO, userDetails.getId());
         return ResponseEntity.ok(updatedProduct);
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<Product>> searchProducts(@RequestParam String name) {
-        List<Product> products = service.searchProducts(name);
+    public ResponseEntity<List<Product>> searchProducts(@RequestParam String name, Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        List<Product> products = service.searchProducts(name, userDetails.getId());
         return ResponseEntity.ok(products);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, Boolean>> deleteProduct(@PathVariable Long id) {
-        service.deleteProduct(id);
+    public ResponseEntity<Map<String, Boolean>> deleteProduct(@PathVariable Long id, Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        service.deleteProduct(id, userDetails.getId());
         Map<String, Boolean> response = new HashMap<>();
         response.put("deleted", Boolean.TRUE);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/inventory-value")
-    public double getInventoryValue() {
-        return service.calculateInventoryValue();
+    public double getInventoryValue(Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        return service.calculateInventoryValue(userDetails.getId());
     }
 }
